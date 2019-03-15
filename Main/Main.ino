@@ -17,6 +17,40 @@
 CRGB leds[NUM_LEDS];                                          // Defining leds table for FastLed
 #define DATA_PIN 6                                            // Output pin for FastLed
 
+/* Constantes des bits de chaque bouton */
+#define BTN_A 256
+#define BTN_B 1
+#define BTN_X 512
+#define BTN_Y 2
+#define BTN_SELECT 4
+#define BTN_START 8
+#define BTN_UP 16
+#define BTN_DOWN 32
+#define BTN_LEFT 64
+#define BTN_RIGHT 128
+#define BTN_L 1024
+#define BTN_R 2048
+#define NO_GAMEPAD 61440
+ 
+/* Pin mapping */
+static const byte PIN_LATCH = 2;
+static const byte PIN_CLOCK = 3;
+static const byte PIN_DATA = 4;
+
+byte leftButtonPushed = 0;
+byte rightButtonPushed = 0;
+byte upButtonPushed = 0;
+byte downButtonPushed = 0;
+byte aButtonPushed = 0;
+byte bButtonPushed = 0;
+byte xButtonPushed = 0;
+byte yButtonPushed = 0;
+byte rButtonPushed = 0;
+byte lButtonPushed = 0;
+byte startButtonPushed = 0;
+byte selectButtonPushed = 0;
+
+
 // LED Matrix
 // top column is from 0 to 7, bottom one from 56 to 63 (for a 8x8 matrix)
 byte LEDMatrix[displayNumberOfRows][displayNumberOfColumns];
@@ -30,16 +64,6 @@ const byte Red = 3;
 const byte Green = 4;
 const byte Purple = 5;
 
-
-// Pin used from the arduino
-#define leftButton A5        // Input pin for button Left
-#define upButton A4          // Input pin for button Up
-#define rightButton A3       // Input pin for button Right
-#define downButton A2        // Input pin for button Down
-#define aButton A0           // Input pin for button A
-#define bButton A1           // Input pin for button B
-
-
 struct pointOnMatrix {
   byte lineCoordinate;
   byte columnCoordinate;
@@ -47,16 +71,6 @@ struct pointOnMatrix {
 
 unsigned long lastMillis = 0;
 unsigned const int growthSpeed = 1500;  // In miliseconds, every how much will the menace grow
-
-unsigned int leftButtonValue = LOW;
-unsigned int rightButtonValue = LOW;
-unsigned int upButtonValue = LOW;
-unsigned int downButtonValue = LOW;
-
-unsigned int lastLeftButtonValue = LOW;
-unsigned int lastRightButtonValue = LOW;
-unsigned int lastUpButtonValue = LOW;
-unsigned int lastDownButtonValue = LOW;
 
 
 
@@ -68,13 +82,10 @@ void setup() {
   // Set matrix pins to output
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
 
-  // Set button pins to input
-  pinMode(leftButton, INPUT);
-  pinMode(upButton, INPUT);
-  pinMode(downButton, INPUT);
-  pinMode(rightButton, INPUT);
-  pinMode(aButton, INPUT);
-  pinMode(bButton, INPUT);
+  /* Initialisation des broches */
+  pinMode(PIN_LATCH, OUTPUT);
+  pinMode(PIN_CLOCK, OUTPUT);
+  pinMode(PIN_DATA, INPUT); 
 }
 
 void loop() {
@@ -85,37 +96,122 @@ if(lastMillis - millis() > 500) {
   lastMillis = millis();
 }
 
-    // ----------------------------------------------------------
-    // Checking if a button has been pushed, reacting accordingly
-    // ----------------------------------------------------------
-    
-    leftButtonValue = analogRead(leftButton);
-    if (leftButtonValue < 200 && lastLeftButtonValue > 800) {
-      
-    }
-    lastLeftButtonValue = leftButtonValue; // And we update what we read just after
+   
+   checkButtons();      // Checks which buttons have been pushed and set according variable to 1
 
-    upButtonValue = analogRead(upButton);
-    if (upButtonValue < 200 && lastUpButtonValue > 800) { 
-      
-    }
-    lastUpButtonValue = upButtonValue; // And we update what we read just after
+  // Do stuff using buttons variables here
 
-    rightButtonValue = analogRead(rightButton);
-    if (rightButtonValue < 200 && lastRightButtonValue > 800) { 
-      
-    }
-    lastRightButtonValue = rightButtonValue; // And we update what we read just after
-
-    downButtonValue = analogRead(downButton);
-    if (downButtonValue < 200 && lastDownButtonValue > 800) { 
-      
-    }
-    lastDownButtonValue = downButtonValue; // And we update what we read just after
+   resetButtons();      // Re-sets button checks to 0 for the next loop
 
   outputDisplay();
   delay(1);
 }
+
+void checkButtons() {
+  
+    static uint16_t oldBtns = 0;      // Anciennes valeurs des boutons
+    uint16_t btns = getSnesButtons(); // Valeurs actuelles des boutons
+    
+    /* Affiche l'état des boutons uniquement en cas de changement */
+    if(oldBtns != btns) {oldBtns = btns;}
+    else                {return;}
+  
+    if(btns & NO_GAMEPAD) {
+      Serial.println(F("No gamepad connected"));
+      return;
+    }
+     
+    /* Affiche l'état de chaque bouton */
+    if(btns & BTN_A) {
+      aButtonPushed = 1;
+    }
+        
+    if(btns & BTN_B){
+      bButtonPushed = 1;
+    }
+  
+    
+    if(btns & BTN_X) {
+      xButtonPushed = 1;
+    }
+   
+    if(btns & BTN_Y) {
+      yButtonPushed = 1;
+    }
+
+    if(btns & BTN_SELECT) {
+      selectButtonPushed = 1;
+    }
+   
+    if(btns & BTN_START) {
+      startButtonPushed = 1;
+    }
+   
+    if(btns & BTN_UP) {
+      upButtonPushed = 1;
+    }
+    
+    if(btns & BTN_DOWN) {
+      downButtonPushed = 1;
+    }
+    
+    if(btns & BTN_LEFT) {
+      leftButtonPushed = 1;
+    }
+   
+    if(btns & BTN_RIGHT){
+      rightButtonPushed = 1;
+    }
+     
+    if(btns & BTN_L) {
+      lButtonPushed = 1;
+    }
+   
+    if(btns & BTN_R) {
+      rButtonPushed = 1;
+    }
+}
+
+void resetButtons() {
+  leftButtonPushed = 0;
+  rightButtonPushed = 0;
+  upButtonPushed = 0;
+  downButtonPushed = 0;
+  aButtonPushed = 0;
+  bButtonPushed = 0;
+  xButtonPushed = 0;
+  yButtonPushed = 0;
+  rButtonPushed = 0;
+  lButtonPushed = 0;
+  startButtonPushed = 0;
+  selectButtonPushed = 0;
+}
+
+/** Retourne l'état de chaque bouton sous la forme d'un entier sur 16 bits. */
+uint16_t getSnesButtons() {
+ 
+  /* 1 bouton = 1 bit */
+  uint16_t value = 0;
+ 
+  /* Capture de l'état courant des boutons */
+  digitalWrite(PIN_LATCH, HIGH);
+  digitalWrite(PIN_LATCH, LOW);
+ 
+  /* Récupère l'état de chaque bouton (12 bits + 4 bits à "1") */
+  for(byte i = 0; i < 16; ++i) {
+ 
+    /* Lit l'état du bouton et décale le bit reçu pour former l'entier sur 16 bits final */
+    value |= digitalRead(PIN_DATA) << i;
+ 
+    /* Pulsation du signal d'horloge */
+    digitalWrite(PIN_CLOCK, HIGH);
+    digitalWrite(PIN_CLOCK, LOW);
+  }
+ 
+  /* Retourne le résultat sous une forme facile à manipuler (bouton appuyé = bit à "1") */
+  return ~value;
+}
+
 
 // Makes the whole "LEDMatrix" equals to 0, i.e. each LED is off
 void clearLEDMatrix() {
