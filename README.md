@@ -1,1 +1,1 @@
-General code for arduino led matrix 6x10 matrix as I coded it =)
+Coding a small game where blue will have to run :)
