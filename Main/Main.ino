@@ -79,7 +79,7 @@ void setup() {
 
 void loop() {
 
-if(lastMillis - millis() > 500) {
+if(millis() - lastMillis > 500) {
 
 
   lastMillis = millis();
